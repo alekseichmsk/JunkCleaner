@@ -1,0 +1,32 @@
+<Window x:Class="JunkCleaner.ReportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="☠ Отчёт очистки"
+        Height="520"
+        Width="640"
+        MinHeight="280"
+        MinWidth="440"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip">
+  <DockPanel Margin="16">
+    <Button DockPanel.Dock="Bottom"
+            Margin="0,12,0,0"
+            Height="28"
+            Content="Закрыть"
+            Click="Close_Click"
+            IsDefault="True" />
+    <TextBox x:Name="ReportBody"
+             AcceptsReturn="True"
+             TextWrapping="Wrap"
+             VerticalScrollBarVisibility="Auto"
+             HorizontalScrollBarVisibility="Auto"
+             FontFamily="Consolas"
+             Background="{DynamicResource Brush.BackgroundMid}"
+             Foreground="{DynamicResource Brush.TextBright}"
+             BorderBrush="{DynamicResource Brush.Border}"
+             CaretBrush="{DynamicResource Brush.TextMuted}"
+             SelectionBrush="{DynamicResource Brush.AccentMist}"
+             IsReadOnly="True"
+             IsReadOnlyCaretVisible="False" />
+  </DockPanel>
+</Window>

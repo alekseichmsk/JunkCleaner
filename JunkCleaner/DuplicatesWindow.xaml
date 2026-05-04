@@ -1,0 +1,322 @@
+<Window x:Class="JunkCleaner.DuplicatesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dup="clr-namespace:JunkCleaner.Duplicates"
+        Title="☠ Поиск дубликатов по SHA-256"
+        Width="1020"
+        Height="720"
+        MinWidth="720"
+        MinHeight="540"
+        WindowStartupLocation="CenterOwner">
+  <DockPanel Margin="12">
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+      <Separator Margin="0,0,0,8" />
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" MinWidth="160" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Row="0"
+              Grid.Column="0"
+              Margin="0,0,12,4"
+              VerticalAlignment="Center">
+          <ProgressBar x:Name="DupProgressDeterminate"
+                       Height="10"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Stretch"
+                       Minimum="0"
+                       Maximum="1"
+                       Visibility="Collapsed" />
+          <ProgressBar x:Name="DupProgressIndeterminate"
+                       Height="10"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Stretch"
+                       IsIndeterminate="True"
+                       Visibility="Collapsed" />
+        </Grid>
+
+        <StackPanel Grid.Row="0"
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+          <Button x:Name="ScanDupButton"
+                  Content="Сканировать"
+                  Width="120"
+                  Height="28"
+                  Margin="0,0,8,0"
+                  Click="Scan_Click" />
+          <Button x:Name="SmartSelectButton"
+                  Content="Умное выделение"
+                  Width="140"
+                  Height="28"
+                  Margin="0,0,8,0"
+                  Click="SmartSelect_Click"
+                  IsEnabled="False" />
+          <Button x:Name="DeleteDupButton"
+                  Content="Удалить выбранные"
+                  Width="160"
+                  Height="28"
+                  Margin="0,0,8,0"
+                  Click="DeleteSelected_Click"
+                  IsEnabled="False" />
+          <Button x:Name="CancelDupButton"
+                  Content="Отмена"
+                  Width="90"
+                  Height="28"
+                  Margin="0,0,12,0"
+                  Click="CancelOperation_Click"
+                  IsEnabled="False" />
+          <Button Content="Закрыть"
+                  Width="100"
+                  Height="28"
+                  IsCancel="True"
+                  Click="Close_Click" />
+        </StackPanel>
+
+        <TextBlock x:Name="DupStatusText"
+                   Grid.Row="1"
+                   Grid.Column="0"
+                   Grid.ColumnSpan="2"
+                   Margin="0,2,0,0"
+                   FontSize="12"
+                   TextWrapping="Wrap" />
+      </Grid>
+    </StackPanel>
+
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0"
+              Margin="0,0,0,12"
+              Padding="10"
+              Background="{DynamicResource Brush.PanelSubtle}"
+              BorderThickness="1"
+              BorderBrush="{DynamicResource Brush.Border}">
+        <StackPanel>
+          <TextBlock FontWeight="SemiBold" Text="Папки для сканирования" Margin="0,0,0,6" />
+
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <ListBox x:Name="FoldersList"
+                     Grid.Column="0"
+                     MinHeight="80"
+                     MaxHeight="120"
+                     Margin="0,0,8,0"
+                     HorizontalContentAlignment="Stretch" />
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Top">
+              <Button Content="Добавить…"
+                      Width="120"
+                      Height="28"
+                      Margin="0,0,0,8"
+                      Click="AddFolder_Click" />
+              <Button Content="Удалить"
+                      Width="120"
+                      Height="28"
+                      Click="RemoveFolder_Click" />
+            </StackPanel>
+          </Grid>
+
+          <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <TextBlock VerticalAlignment="Center" Text="Тип файлов:" Margin="0,0,8,0" />
+            <ComboBox x:Name="PresetCombo"
+                      Width="200"
+                      SelectedIndex="0">
+              <ComboBoxItem Tag="All" Content="Все файлы" />
+              <ComboBoxItem Tag="Images" Content="Изображения" />
+              <ComboBoxItem Tag="Documents" Content="Документы" />
+              <ComboBoxItem Tag="Videos" Content="Видео" />
+              <ComboBoxItem Tag="Archives" Content="Архивы" />
+            </ComboBox>
+
+            <TextBlock VerticalAlignment="Center" Margin="16,0,8,0" Text="Мин. размер (КБ):" />
+            <TextBox x:Name="MinSizeKbBox"
+                     Width="72"
+                     Height="26"
+                     Text="10"
+                     VerticalContentAlignment="Center" />
+          </StackPanel>
+
+          <TextBlock Margin="0,8,0,0"
+                     TextWrapping="Wrap"
+                     FontSize="11"
+                     Foreground="{DynamicResource Brush.TextMuted}"
+                     Text="Подсказка: обход включает вложенные папки. Слева — список групп после фильтров; справа — файлы выбранной группы. «Проводник» — проверка вручную. Удаление необратимо." />
+        </StackPanel>
+      </Border>
+
+      <GroupBox Grid.Row="1"
+                Header="Найденные группы одинакового содержимого"
+                Padding="6">
+        <DockPanel LastChildFill="True">
+          <Border x:Name="DupScanStatsPanel"
+                  DockPanel.Dock="Top"
+                  Margin="0,0,0,8"
+                  Padding="8,6"
+                  Background="{DynamicResource Brush.InfoPanel}"
+                  BorderBrush="{DynamicResource Brush.Border}"
+                  BorderThickness="1"
+                  CornerRadius="2"
+                  Visibility="Collapsed">
+            <TextBlock x:Name="DupScanStatsText"
+                       FontSize="12"
+                       TextWrapping="Wrap" />
+          </Border>
+
+          <Border x:Name="DupFilterPanel"
+                  DockPanel.Dock="Top"
+                  Margin="0,0,0,8"
+                  Padding="10,8"
+                  Background="{DynamicResource Brush.FilterPanel}"
+                  BorderBrush="{DynamicResource Brush.Border}"
+                  BorderThickness="1"
+                  IsEnabled="False">
+            <StackPanel>
+              <TextBlock x:Name="DupFilterSummaryText"
+                         FontSize="11"
+                         Foreground="{DynamicResource Brush.TextMuted}"
+                         TextWrapping="Wrap"
+                         Text="После скана здесь появится сводка по фильтрам." />
+
+              <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center" Text="Мин. «лишних» данных (МБ):" Margin="0,0,8,0" />
+                <TextBox x:Name="DupFilterMinWastedMbBox"
+                         Width="72"
+                         Height="26"
+                         VerticalContentAlignment="Center"
+                         ToolTip="0 или пусто — без ограничения. Учитывается оценка лишних байт по группе (размер × (копий − 1))." />
+                <TextBlock VerticalAlignment="Center" Margin="16,0,8,0" Text="Путь содержит:" />
+                <TextBox x:Name="DupFilterPathContainsBox"
+                         MinWidth="200"
+                         Height="26"
+                         VerticalContentAlignment="Center"
+                         HorizontalAlignment="Stretch"
+                         ToolTip="Показать только группы, где хотя бы один путь содержит эту подстроку (без учёта регистра)." />
+                <Button x:Name="DupApplyFiltersButton"
+                        Margin="12,0,0,0"
+                        Padding="12,4"
+                        VerticalAlignment="Center"
+                        Content="Применить фильтры"
+                        Click="DupApplyFilters_Click" />
+              </StackPanel>
+
+              <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <CheckBox x:Name="DupFilterExcludeProgramFilesCheck"
+                          VerticalAlignment="Center"
+                          Content="Скрыть группы с файлами в Program Files" />
+                <CheckBox x:Name="DupFilterExcludeWindowsCheck"
+                          Margin="16,0,0,0"
+                          VerticalAlignment="Center"
+                          Content="Скрыть группы с файлами в папке Windows" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" MinWidth="220" />
+              <ColumnDefinition Width="6" />
+              <ColumnDefinition Width="1.6*" MinWidth="280" />
+            </Grid.ColumnDefinitions>
+
+          <ListView x:Name="DupGroupsList"
+                    Grid.Column="0"
+                    VirtualizingStackPanel.IsVirtualizing="True"
+                    VirtualizingStackPanel.VirtualizationMode="Recycling"
+                    ScrollViewer.CanContentScroll="True"
+                    SelectionMode="Single"
+                    SelectionChanged="DupGroupsList_SelectionChanged">
+            <ListView.ItemContainerStyle>
+              <Style BasedOn="{StaticResource {x:Type ListViewItem}}" TargetType="ListViewItem">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+              </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+              <DataTemplate DataType="{x:Type dup:DuplicateGroupVm}">
+                <TextBlock Text="{Binding Summary}"
+                           TextWrapping="Wrap"
+                           FontSize="12" />
+              </DataTemplate>
+            </ListView.ItemTemplate>
+          </ListView>
+
+          <GridSplitter Grid.Column="1"
+                        Width="6"
+                        HorizontalAlignment="Stretch"
+                        Background="{DynamicResource Brush.Border}" />
+
+          <DockPanel Grid.Column="2" LastChildFill="True">
+            <TextBlock x:Name="DupDetailPlaceholder"
+                       DockPanel.Dock="Top"
+                       Padding="0,0,0,8"
+                       FontSize="12"
+                       Foreground="{DynamicResource Brush.TextMuted}"
+                       TextWrapping="Wrap"
+                       Text="Выберите группу слева, чтобы увидеть файлы и отметки удаления." />
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+              <StackPanel x:Name="DupDetailPanel" Visibility="Collapsed">
+                <TextBlock FontWeight="SemiBold"
+                           FontSize="13"
+                           Text="{Binding Summary}"
+                           TextWrapping="Wrap" />
+                <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding Rows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type dup:DuplicateFileRowVm}">
+                      <StackPanel Margin="0,2" Orientation="Horizontal">
+                        <CheckBox VerticalAlignment="Center"
+                                  Content="удалить"
+                                  IsChecked="{Binding MarkedForDeletion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Margin="8,0,4,0"
+                                Padding="8,2"
+                                VerticalAlignment="Center"
+                                Content="Проводник"
+                                ToolTip="Открыть папку и выделить этот файл в проводнике Windows"
+                                Click="DuplicateRow_OpenInExplorer_Click" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{Binding FullPath}"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding FullPath}">
+                          <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding MarkedForDeletion}" Value="False">
+                                  <Setter Property="Foreground" Value="{DynamicResource Brush.AccentSage}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding MarkedForDeletion}" Value="True">
+                                  <Setter Property="Foreground" Value="{DynamicResource Brush.TextBright}" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Margin="8,0,0,0"
+                                   VerticalAlignment="Center"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Brush.TextMuted}"
+                                   Text="{Binding KeeperLabelVisibility}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </ScrollViewer>
+          </DockPanel>
+          </Grid>
+        </DockPanel>
+      </GroupBox>
+    </Grid>
+  </DockPanel>
+</Window>

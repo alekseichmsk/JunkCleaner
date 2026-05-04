@@ -1,0 +1,145 @@
+<UserControl x:Class="JunkCleaner.ProgramLeftovers.ProgramLeftoversView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinHeight="400">
+  <Grid Margin="0,8,0,0">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+      <TextBlock Text="Ищет возможные остатки удалённых программ. Ничего не удаляет автоматически: результат нужно проверить вручную."
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource Brush.TextMuted}" />
+
+      <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+        <CheckBox x:Name="ScanRegistryBox"
+                  IsChecked="True"
+                  VerticalAlignment="Center"
+                  Content="HKCU/HKLM Software"
+                  Foreground="{DynamicResource Brush.TextBright}" />
+        <CheckBox x:Name="ScanFoldersBox"
+                  IsChecked="True"
+                  Margin="16,0,0,0"
+                  VerticalAlignment="Center"
+                  Content="%AppData%, %LocalAppData%, %ProgramData%"
+                  Foreground="{DynamicResource Brush.TextBright}" />
+      </StackPanel>
+
+      <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+        <Button x:Name="ScanButton"
+                MinWidth="120"
+                Content="Сканировать"
+                Click="Scan_Click" />
+        <Button x:Name="CancelButton"
+                MinWidth="90"
+                Margin="10,0,0,0"
+                Content="Отмена"
+                IsEnabled="False"
+                Click="Cancel_Click" />
+        <Button x:Name="OpenButton"
+                MinWidth="170"
+                Margin="10,0,0,0"
+                Content="Открыть / скопировать"
+                Click="OpenSelected_Click" />
+        <Button x:Name="CopyButton"
+                MinWidth="110"
+                Margin="10,0,0,0"
+                Content="Копировать путь"
+                Click="CopySelected_Click" />
+      </StackPanel>
+
+      <Grid Margin="0,12,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="220" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="150" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0">
+          <TextBlock Text="Быстрый поиск"
+                     Foreground="{DynamicResource Brush.TextMuted}"
+                     FontSize="11" />
+          <TextBox x:Name="SearchBox"
+                   Margin="0,4,0,0"
+                   ToolTip="Фильтр по имени, причине и расположению" />
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock Text="Тип результата"
+                     Foreground="{DynamicResource Brush.TextMuted}"
+                     FontSize="11" />
+          <ComboBox x:Name="KindFilterBox"
+                    Margin="0,4,0,0"
+                    SelectedIndex="0">
+            <ComboBoxItem Content="Все" />
+            <ComboBoxItem Content="Папки" />
+            <ComboBoxItem Content="Реестр" />
+          </ComboBox>
+        </StackPanel>
+        <CheckBox x:Name="ShowLowConfidenceBox"
+                  Grid.Column="4"
+                  Margin="0,22,0,0"
+                  VerticalAlignment="Top"
+                  Content="Показывать низкую уверенность"
+                  Foreground="{DynamicResource Brush.TextBright}" />
+      </Grid>
+
+      <ProgressBar x:Name="Progress"
+                   Height="5"
+                   Margin="0,10,0,0"
+                   IsIndeterminate="True"
+                   Visibility="Collapsed" />
+      <TextBlock x:Name="StatusText"
+                 Margin="0,6,0,0"
+                 TextWrapping="Wrap"
+                 FontSize="11"
+                 Foreground="{DynamicResource Brush.TextMuted}"
+                 Text="Готово к сканированию. Уровень уверенности — эвристика, не приговор." />
+      <TextBlock x:Name="SummaryText"
+                 Margin="0,4,0,0"
+                 TextWrapping="Wrap"
+                 FontSize="11"
+                 FontWeight="SemiBold"
+                 Foreground="{DynamicResource Brush.AccentMist}" />
+    </StackPanel>
+
+    <ListView x:Name="ResultsList"
+              Grid.Row="1"
+              SelectionMode="Single"
+              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+              Background="{DynamicResource Brush.BackgroundMid}"
+              BorderBrush="{DynamicResource Brush.Border}"
+              BorderThickness="1">
+      <ListView.View>
+        <GridView AllowsColumnReorder="False">
+          <GridViewColumn Header="Тип"
+                          DisplayMemberBinding="{Binding KindText}"
+                          Width="72" />
+          <GridViewColumn Header="Уверенность"
+                          DisplayMemberBinding="{Binding Confidence}"
+                          Width="90" />
+          <GridViewColumn Header="Размер"
+                          DisplayMemberBinding="{Binding SizeText}"
+                          Width="90" />
+          <GridViewColumn Header="Имя"
+                          DisplayMemberBinding="{Binding Name}"
+                          Width="180" />
+          <GridViewColumn Header="Причина"
+                          DisplayMemberBinding="{Binding Reason}"
+                          Width="320" />
+          <GridViewColumn Header="Расположение" Width="520">
+            <GridViewColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Location}"
+                           ToolTip="{Binding Location}"
+                           TextTrimming="CharacterEllipsis" />
+              </DataTemplate>
+            </GridViewColumn.CellTemplate>
+          </GridViewColumn>
+        </GridView>
+      </ListView.View>
+    </ListView>
+  </Grid>
+</UserControl>

@@ -1,0 +1,155 @@
+<UserControl x:Class="JunkCleaner.LargeFiles.LargeFilesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:large="clr-namespace:JunkCleaner.LargeFiles"
+             MinHeight="400">
+  <Grid Margin="0,8,0,0">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" MinHeight="220" />
+    </Grid.RowDefinitions>
+
+    <!-- Параметры -->
+    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+      <TextBlock Text="Тома для обхода (только локальные фиксированные диски):"
+                 Foreground="{DynamicResource Brush.TextMuted}"
+                 Margin="0,0,0,6"
+                 TextWrapping="Wrap" />
+      <ItemsControl x:Name="DrivesPanel" Margin="0,0,0,10">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="{x:Type large:DriveChoiceVm}">
+            <CheckBox Margin="0,2,14,4"
+                      Content="{Binding Title}"
+                      VerticalAlignment="Center"
+                      Foreground="{DynamicResource Brush.TextBright}"
+                      IsChecked="{Binding IsIncluded, Mode=TwoWay}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" MaxWidth="360" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="128" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0">
+          <TextBlock Text="Расширения (через запятую или пробел)"
+                     Foreground="{DynamicResource Brush.TextMuted}"
+                     FontSize="11" />
+          <TextBox x:Name="ExtensionsBox"
+                   Margin="0,4,0,0"
+                   ToolTip=".iso, .zip, .mp4 — пусто значит любые типы файлов." />
+        </StackPanel>
+        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+          <TextBlock Text="Мин. размер, МБ"
+                     Foreground="{DynamicResource Brush.TextMuted}"
+                     FontSize="11" />
+          <TextBox x:Name="MinMegabytesBox"
+                   Margin="0,4,0,0"
+                   TextAlignment="Right" />
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+        <Button x:Name="ScanButton"
+                MinWidth="120"
+                Content="Сканировать"
+                Click="Scan_Click" />
+        <Button x:Name="CancelScanButton"
+                MinWidth="100"
+                Margin="10,0,0,0"
+                Content="Отмена"
+                IsEnabled="False"
+                Click="Cancel_Click" />
+        <Button x:Name="OpenFolderButton"
+                MinWidth="180"
+                Margin="10,0,0,0"
+                Content="Показать в проводнике"
+                Click="OpenFolder_Click" />
+      </StackPanel>
+
+      <ProgressBar x:Name="ScanProgressBar"
+                   Height="5"
+                   Margin="0,10,0,0"
+                   IsIndeterminate="True"
+                   Visibility="Collapsed" />
+      <TextBlock x:Name="ScanStatusText"
+                 Margin="0,6,0,0"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource Brush.TextMuted}"
+                 FontSize="11"
+                 Text="Отметьте диски, при необходимости задайте расширения и минимальный размер." />
+    </StackPanel>
+
+    <Grid Grid.Row="1" Margin="0,16,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="340" MinWidth="240" />
+        <ColumnDefinition Width="8" />
+        <ColumnDefinition Width="*" MinWidth="200" />
+      </Grid.ColumnDefinitions>
+
+      <ListView x:Name="FilesGrid"
+                Grid.Column="0"
+                SelectionMode="Single"
+                ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                Background="{DynamicResource Brush.BackgroundMid}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1">
+        <ListView.View>
+          <GridView AllowsColumnReorder="False">
+            <GridViewColumn Header="Размер"
+                            DisplayMemberBinding="{Binding SizeText}"
+                            Width="90" />
+            <GridViewColumn Header="Тип"
+                            DisplayMemberBinding="{Binding Extension}"
+                            Width="64" />
+            <GridViewColumn Header="Путь" Width="400">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Path}"
+                             ToolTip="{Binding Path}"
+                             TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+          </GridView>
+        </ListView.View>
+      </ListView>
+
+      <Grid Grid.Column="2">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0"
+                   Margin="0,0,0,4"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.TextBright}"
+                   Text="Карта долей по размеру (топ‑100)" />
+        <TextBlock Grid.Row="1"
+                   Margin="0,0,0,8"
+                   FontSize="11"
+                   Foreground="{DynamicResource Brush.TextMuted}"
+                   TextWrapping="Wrap"
+                   Text="Щёлкните плитку — выделится строка слева; двойной щелчок по плитке или строке — открыть в проводнике." />
+        <Border Grid.Row="2"
+                ClipToBounds="True"
+                CornerRadius="4"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource Brush.Border}"
+                Background="{DynamicResource Brush.BackgroundDeep}">
+          <Canvas x:Name="TreemapCanvas"
+                  Background="Transparent"
+                  MouseDown="TreemapCanvas_MouseDown" />
+        </Border>
+      </Grid>
+    </Grid>
+  </Grid>
+</UserControl>
