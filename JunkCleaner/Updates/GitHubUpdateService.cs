@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
+using System.IO.Compression;
 using JunkCleaner.Ui;
 
 namespace JunkCleaner.Updates;
@@ -151,6 +153,48 @@ public sealed class GitHubUpdateService
             });
     }
 
+    public static void LaunchSelfUpdateFromZip(string zipPath)
+    {
+        if (string.IsNullOrWhiteSpace(zipPath) || !File.Exists(zipPath))
+            throw new FileNotFoundException("Архив обновления не найден.", zipPath);
+
+        var extractRoot = Path.Combine(
+            Path.GetTempPath(),
+            "JunkCleaner",
+            "Updates",
+            "install-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));
+        Directory.CreateDirectory(extractRoot);
+        ZipFile.ExtractToDirectory(zipPath, extractRoot, overwriteFiles: true);
+
+        var updaterPath = FindUpdater(extractRoot);
+        if (updaterPath is null)
+            throw new FileNotFoundException("В архиве обновления не найден JunkCleaner.Updater.exe.");
+
+        var targetDir = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
+        var mainExe = Path.Combine(targetDir, "JunkCleaner.exe");
+        if (!File.Exists(mainExe))
+        {
+            var currentExe = Process.GetCurrentProcess().MainModule?.FileName;
+            if (!string.IsNullOrWhiteSpace(currentExe) && File.Exists(currentExe))
+                mainExe = currentExe;
+        }
+
+        var args =
+            "--source " + Quote(extractRoot) + " " +
+            "--target " + Quote(targetDir) + " " +
+            "--main-exe " + Quote(mainExe) + " " +
+            "--wait-pid " + Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture);
+
+        Process.Start(
+            new ProcessStartInfo
+            {
+                FileName = updaterPath,
+                Arguments = args,
+                WorkingDirectory = Path.GetDirectoryName(updaterPath),
+                UseShellExecute = true,
+            });
+    }
+
     public static void OpenReleasePage(UpdateCheckResult result)
     {
         if (string.IsNullOrWhiteSpace(result.ReleaseUrl))
@@ -171,6 +215,30 @@ public sealed class GitHubUpdateService
         client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         return client;
     }
+
+    private static string? FindUpdater(string extractRoot)
+    {
+        var direct = Path.Combine(extractRoot, "Updater", "JunkCleaner.Updater.exe");
+        if (File.Exists(direct))
+            return direct;
+
+        var root = Path.Combine(extractRoot, "JunkCleaner.Updater.exe");
+        if (File.Exists(root))
+            return root;
+
+        try
+        {
+            return Directory
+                .EnumerateFiles(extractRoot, "JunkCleaner.Updater.exe", SearchOption.AllDirectories)
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string Quote(string value) => "\"" + value.Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
 
     private static Version GetCurrentVersion()
     {

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using JunkCleaner.Ui;
+using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using UserControl = System.Windows.Controls.UserControl;
 
@@ -104,13 +105,22 @@ public partial class UpdatesView : UserControl
             StatusText.Text = "Обновление скачано: " + path;
 
             var answer = MessageBox.Show(
-                "Файл обновления скачан. Запустить установку сейчас?\n\n" + path,
+                "Файл обновления скачан. Приложение закроется, updater заменит файлы и запустит новую версию.\n\nПродолжить?",
                 "Обновление JunkCleaner",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
-            if (answer == MessageBoxResult.Yes)
-                GitHubUpdateService.LaunchDownloadedUpdate(path);
+            if (answer != MessageBoxResult.Yes)
+                return;
+
+            if (Path.GetExtension(path).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                GitHubUpdateService.LaunchSelfUpdateFromZip(path);
+                Application.Current.Shutdown();
+                return;
+            }
+
+            GitHubUpdateService.LaunchDownloadedUpdate(path);
         }
         catch (OperationCanceledException)
         {

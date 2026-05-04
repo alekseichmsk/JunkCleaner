@@ -13,6 +13,7 @@ obj/
 TestResults/
 *.trx
 coverage/
+artifacts/
 
 # Logs and temporary diagnostics
 *.log

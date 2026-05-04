@@ -38,6 +38,13 @@ jobs:
             -p:Version=$version `
             -o publish/JunkCleaner
 
+          dotnet publish JunkCleaner.Updater/JunkCleaner.Updater.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained false `
+            -p:Version=$version `
+            -o publish/JunkCleaner/Updater
+
       - name: Pack artifact
         shell: pwsh
         run: |
@@ -52,4 +59,4 @@ jobs:
         run: |
           gh release create "${{ github.ref_name }}" $env:ZIP_PATH `
             --title "JunkCleaner ${{ github.ref_name }}" `
-            --notes "Portable Windows x64 build. Download the zip, extract it, and run JunkCleaner.exe."
+            --generate-notes
