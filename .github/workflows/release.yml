@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore JunkCleaner.sln
+
+      - name: Test
+        run: dotnet test JunkCleaner.sln -c Release --no-restore
+
+      - name: Publish portable app
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          dotnet publish JunkCleaner/JunkCleaner.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained false `
+            -p:Version=$version `
+            -o publish/JunkCleaner
+
+      - name: Pack artifact
+        shell: pwsh
+        run: |
+          $zip = "JunkCleaner-${{ github.ref_name }}-win-x64.zip"
+          Compress-Archive -Path "publish/JunkCleaner/*" -DestinationPath $zip -Force
+          echo "ZIP_PATH=$zip" >> $env:GITHUB_ENV
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" $env:ZIP_PATH `
+            --title "JunkCleaner ${{ github.ref_name }}" `
+            --notes "Portable Windows x64 build. Download the zip, extract it, and run JunkCleaner.exe."

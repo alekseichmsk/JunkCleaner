@@ -46,6 +46,19 @@ dotnet publish JunkCleaner\JunkCleaner.csproj -c Release -r win-x64 --self-conta
 dotnet test JunkCleaner.sln -c Release
 ```
 
+## GitHub Releases / автообновление
+
+Автообновление в приложении проверяет Releases репозитория `alekseichmsk/JunkCleaner`.
+
+Чтобы выпустить новую portable-сборку:
+
+```powershell
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+GitHub Actions соберёт `JunkCleaner-v0.1.1-win-x64.zip` и прикрепит его к Release. Вкладка «Обновления» найдёт этот asset, если версия тега выше версии запущенного приложения.
+
 ## Примечания
 
 - Для части категорий (например `Windows\Temp`) может понадобиться запуск от имени администратора.
