@@ -27,15 +27,18 @@ public partial class MainWindow : Window
             await WaitForProcessExitAsync(_args.WaitPid, TimeSpan.FromSeconds(45));
 
             StatusText.Text = "Копируем новые файлы…";
+            var runningFromTarget = IsUnderTargetDirectory(Process.GetCurrentProcess().MainModule?.FileName, _args.TargetDir);
             var files = Directory
                 .EnumerateFiles(_args.SourceDir, "*", SearchOption.AllDirectories)
-                .Where(ShouldCopyFile)
                 .ToList();
 
             for (var i = 0; i < files.Count; i++)
             {
                 var source = files[i];
                 var rel = Path.GetRelativePath(_args.SourceDir, source);
+                if (!ShouldCopyFile(rel, runningFromTarget))
+                    continue;
+
                 var target = Path.Combine(_args.TargetDir, rel);
 
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
@@ -46,6 +49,7 @@ public partial class MainWindow : Window
                 await Task.Delay(5);
             }
 
+            Progress.Value = 100;
             StatusText.Text = "Запускаем новую версию…";
             DetailsText.Text = _args.MainExe;
             StartMainApp(_args.MainExe);
@@ -61,10 +65,30 @@ public partial class MainWindow : Window
         }
     }
 
-    private static bool ShouldCopyFile(string path)
+    private static bool ShouldCopyFile(string relativePath, bool runningFromTarget)
     {
-        var name = Path.GetFileName(path);
-        return !string.Equals(name, "JunkCleaner.Updater.pdb", StringComparison.OrdinalIgnoreCase);
+        if (!runningFromTarget)
+            return true;
+
+        var normalized = relativePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        return !normalized.StartsWith("Updater" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsUnderTargetDirectory(string? path, string targetDir)
+    {
+        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(targetDir))
+            return false;
+
+        try
+        {
+            var full = Path.GetFullPath(path);
+            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(targetDir)) + Path.DirectorySeparatorChar;
+            return full.StartsWith(root, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static async Task WaitForProcessExitAsync(int? pid, TimeSpan timeout)
@@ -77,18 +101,20 @@ public partial class MainWindow : Window
             using var process = Process.GetProcessById(value);
             var waitTask = process.WaitForExitAsync();
             var timeoutTask = Task.Delay(timeout);
-            await Task.WhenAny(waitTask, timeoutTask);
+            var completed = await Task.WhenAny(waitTask, timeoutTask);
+            if (completed != waitTask && !process.HasExited)
+                throw new TimeoutException("JunkCleaner не закрылся вовремя. Обновление остановлено, чтобы не повредить файлы приложения.");
         }
-        catch
+        catch (ArgumentException)
         {
-            // Process is already gone or inaccessible.
+            // Process is already gone.
         }
     }
 
     private static void StartMainApp(string mainExe)
     {
         if (string.IsNullOrWhiteSpace(mainExe) || !File.Exists(mainExe))
-            return;
+            throw new FileNotFoundException("Не найден основной исполняемый файл для запуска после обновления.", mainExe);
 
         Process.Start(
             new ProcessStartInfo
@@ -112,7 +138,8 @@ public partial class MainWindow : Window
         public bool IsValid =>
             Directory.Exists(SourceDir) &&
             Directory.Exists(TargetDir) &&
-            !string.IsNullOrWhiteSpace(MainExe);
+            !string.IsNullOrWhiteSpace(MainExe) &&
+            File.Exists(MainExe);
 
         public static UpdaterArgs Parse(IReadOnlyList<string> args)
         {

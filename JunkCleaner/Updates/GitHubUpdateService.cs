@@ -59,7 +59,12 @@ public sealed class GitHubUpdateService
                 continue;
 
             var asset = SelectAsset(release);
+            if (asset is null)
+                continue;
+
             var releaseUrl = GetString(release, "html_url");
+            var latestComparable = NormalizeVersion(latest);
+            var currentComparable = NormalizeVersion(current);
 
             return new UpdateCheckResult
             {
@@ -71,8 +76,8 @@ public sealed class GitHubUpdateService
                 Body = GetString(release, "body"),
                 Asset = asset,
                 IsConfigured = true,
-                IsNewerAvailable = latest > current,
-                Message = latest > current
+                IsNewerAvailable = latestComparable > currentComparable,
+                Message = latestComparable > currentComparable
                     ? $"Доступна версия {tag}."
                     : $"Установлена актуальная версия ({current}).",
             };
@@ -158,6 +163,15 @@ public sealed class GitHubUpdateService
         if (string.IsNullOrWhiteSpace(zipPath) || !File.Exists(zipPath))
             throw new FileNotFoundException("Архив обновления не найден.", zipPath);
 
+        var targetDir = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
+        var updaterPath = FindInstalledUpdater(targetDir);
+        if (updaterPath is null)
+        {
+            throw new FileNotFoundException(
+                "Локальный JunkCleaner.Updater.exe не найден рядом с приложением. " +
+                "Установите релиз вручную один раз, после этого автообновление сможет заменять старую папку автоматически.");
+        }
+
         var extractRoot = Path.Combine(
             Path.GetTempPath(),
             "JunkCleaner",
@@ -166,11 +180,10 @@ public sealed class GitHubUpdateService
         Directory.CreateDirectory(extractRoot);
         ZipFile.ExtractToDirectory(zipPath, extractRoot, overwriteFiles: true);
 
-        var updaterPath = FindUpdater(extractRoot);
-        if (updaterPath is null)
-            throw new FileNotFoundException("В архиве обновления не найден JunkCleaner.Updater.exe.");
+        var extractedMainExe = Path.Combine(extractRoot, "JunkCleaner.exe");
+        if (!File.Exists(extractedMainExe))
+            throw new FileNotFoundException("В архиве обновления не найден JunkCleaner.exe.");
 
-        var targetDir = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
         var mainExe = Path.Combine(targetDir, "JunkCleaner.exe");
         if (!File.Exists(mainExe))
         {
@@ -210,32 +223,23 @@ public sealed class GitHubUpdateService
 
     private static HttpClient CreateClient()
     {
-        var client = new HttpClient();
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(45) };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("JunkCleaner-Updater/1.0");
         client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         return client;
     }
 
-    private static string? FindUpdater(string extractRoot)
+    private static string? FindInstalledUpdater(string targetDir)
     {
-        var direct = Path.Combine(extractRoot, "Updater", "JunkCleaner.Updater.exe");
+        var direct = Path.Combine(targetDir, "Updater", "JunkCleaner.Updater.exe");
         if (File.Exists(direct))
             return direct;
 
-        var root = Path.Combine(extractRoot, "JunkCleaner.Updater.exe");
+        var root = Path.Combine(targetDir, "JunkCleaner.Updater.exe");
         if (File.Exists(root))
             return root;
 
-        try
-        {
-            return Directory
-                .EnumerateFiles(extractRoot, "JunkCleaner.Updater.exe", SearchOption.AllDirectories)
-                .FirstOrDefault();
-        }
-        catch
-        {
-            return null;
-        }
+        return null;
     }
 
     private static string Quote(string value) => "\"" + value.Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
@@ -243,9 +247,7 @@ public sealed class GitHubUpdateService
     private static Version GetCurrentVersion()
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version;
-        return version is null
-            ? new Version(0, 0, 0)
-            : new Version(version.Major, version.Minor, Math.Max(version.Build, 0));
+        return NormalizeVersion(version ?? new Version(0, 0, 0, 0));
     }
 
     private static GitHubReleaseAsset? SelectAsset(JsonElement release)
@@ -270,18 +272,24 @@ public sealed class GitHubUpdateService
 
         foreach (var ext in UpdateSettings.PreferredAssetExtensions)
         {
-            var found = list.FirstOrDefault(a =>
-                a.Name.EndsWith(ext, StringComparison.OrdinalIgnoreCase) &&
-                a.Name.Contains("JunkCleaner", StringComparison.OrdinalIgnoreCase));
-            if (found is not null)
-                return found;
-
-            found = list.FirstOrDefault(a => a.Name.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+            var found = list.FirstOrDefault(a => IsPreferredAsset(a, ext));
             if (found is not null)
                 return found;
         }
 
         return null;
+    }
+
+    private static bool IsPreferredAsset(GitHubReleaseAsset asset, string extension)
+    {
+        if (!asset.Name.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!asset.Name.Contains("JunkCleaner", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return extension is ".appinstaller" or ".exe" or ".msi" ||
+               asset.Name.Contains("win-x64", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryParseVersion(string? tag, out Version version)
@@ -298,7 +306,20 @@ public sealed class GitHubUpdateService
         if (suffixIndex >= 0)
             cleaned = cleaned[..suffixIndex];
 
-        return Version.TryParse(cleaned, out version!);
+        if (!Version.TryParse(cleaned, out var parsed))
+            return false;
+
+        version = NormalizeVersion(parsed);
+        return true;
+    }
+
+    private static Version NormalizeVersion(Version version)
+    {
+        return new Version(
+            Math.Max(version.Major, 0),
+            Math.Max(version.Minor, 0),
+            Math.Max(version.Build, 0),
+            Math.Max(version.Revision, 0));
     }
 
     private static string? GetString(JsonElement element, string property)

@@ -104,8 +104,16 @@ public partial class UpdatesView : UserControl
             var path = await _updates.DownloadAssetAsync(asset, progress, _cts!.Token).ConfigureAwait(true);
             StatusText.Text = "Обновление скачано: " + path;
 
+            var extension = Path.GetExtension(path);
+            var isZip = extension.Equals(".zip", StringComparison.OrdinalIgnoreCase);
+            var prompt = isZip
+                ? "Файл обновления скачан. Приложение закроется, локальный updater заменит файлы старой папки и запустит новую версию.\n\nПродолжить?"
+                : extension.Equals(".appinstaller", StringComparison.OrdinalIgnoreCase)
+                    ? "Файл AppInstaller скачан. Windows откроет стандартный установщик/обновлятор приложения.\n\nПродолжить?"
+                    : "Файл обновления скачан. Запустить установщик сейчас?\n\n" + path;
+
             var answer = MessageBox.Show(
-                "Файл обновления скачан. Приложение закроется, updater заменит файлы и запустит новую версию.\n\nПродолжить?",
+                prompt,
                 "Обновление JunkCleaner",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
@@ -113,7 +121,7 @@ public partial class UpdatesView : UserControl
             if (answer != MessageBoxResult.Yes)
                 return;
 
-            if (Path.GetExtension(path).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            if (isZip)
             {
                 GitHubUpdateService.LaunchSelfUpdateFromZip(path);
                 Application.Current.Shutdown();

@@ -53,11 +53,20 @@ dotnet test JunkCleaner.sln -c Release
 Чтобы выпустить новую portable-сборку:
 
 ```powershell
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
-GitHub Actions соберёт `JunkCleaner-v0.1.1-win-x64.zip` и прикрепит его к Release. Внутри архива лежит `JunkCleaner.Updater`, поэтому вкладка «Обновления» может скачать архив, закрыть старую копию, заменить файлы и запустить новую версию.
+GitHub Actions публикует несколько вариантов:
+
+- `JunkCleaner-v0.1.3-win-x64.zip` — portable-архив для ручного переноса или portable self-update.
+- `JunkCleaner-v0.1.3-win-x64.msix` — MSIX-пакет.
+- `JunkCleaner-v0.1.3.appinstaller` — AppInstaller-файл для установки и дальнейших обновлений через Windows.
+- `JunkCleaner-v0.1.3-selfsigned.cer` — тестовый самоподписанный сертификат.
+
+Для тестовой установки MSIX/AppInstaller нужно один раз доверить сертификат (`.cer`) в `Trusted People` / «Доверенные лица». Для публичного распространения нужен нормальный code signing certificate, иначе Windows будет предупреждать о недоверенном издателе.
+
+Вкладка «Обновления» предпочитает `.appinstaller`/`.msix`, а portable `.zip` остаётся запасным вариантом. В сценарии AppInstaller обновления выполняет Windows, как у обычных desktop-приложений.
 
 Release notes генерируются GitHub автоматически по коммитам между тегами, поэтому во вкладке «Обновления» видно, что было добавлено и исправлено.
 

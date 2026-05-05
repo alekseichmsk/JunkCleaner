@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppInstaller
+  xmlns="http://schemas.microsoft.com/appx/appinstaller/2018"
+  Version="__MSIX_VERSION__"
+  Uri="__APPINSTALLER_URI__">
+  <MainPackage
+    Name="alekseichmsk.JunkCleaner"
+    Publisher="CN=alekseichmsk"
+    Version="__MSIX_VERSION__"
+    ProcessorArchitecture="x64"
+    Uri="__MSIX_URI__" />
+  <UpdateSettings>
+    <OnLaunch HoursBetweenUpdateChecks="0" ShowPrompt="true" UpdateBlocksActivation="false" />
+    <ForceUpdateFromAnyVersion>true</ForceUpdateFromAnyVersion>
+  </UpdateSettings>
+</AppInstaller>

@@ -11,11 +11,11 @@ internal static class UpdateSettings
     /// <summary>Preferred installer/update assets. First matching asset wins.</summary>
     public static readonly string[] PreferredAssetExtensions =
     {
+        ".appinstaller",
+        ".msix",
+        ".zip",
         ".msi",
         ".exe",
-        ".msix",
-        ".appinstaller",
-        ".zip",
     };
 
     public static bool IsConfigured =>

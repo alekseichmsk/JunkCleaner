@@ -45,6 +45,90 @@ jobs:
             -p:Version=$version `
             -o publish/JunkCleaner/Updater
 
+      - name: Publish MSIX payload
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          dotnet publish JunkCleaner/JunkCleaner.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:Version=$version `
+            -o publish/JunkCleanerMsix
+
+          Copy-Item -Path packaging/msix/Assets -Destination publish/JunkCleanerMsix/Assets -Recurse -Force
+
+          $parts = $version.Split('.')
+          while ($parts.Count -lt 4) { $parts += "0" }
+          $msixVersion = ($parts[0..3] -join ".")
+          $manifest = Get-Content packaging/msix/AppxManifest.xml.template -Raw
+          $manifest = $manifest.Replace("__MSIX_VERSION__", $msixVersion)
+          Set-Content publish/JunkCleanerMsix/AppxManifest.xml -Value $manifest -Encoding UTF8
+
+          echo "MSIX_VERSION=$msixVersion" >> $env:GITHUB_ENV
+
+      - name: Verify updater layout
+        shell: pwsh
+        run: |
+          $required = @(
+            "publish/JunkCleaner/JunkCleaner.exe",
+            "publish/JunkCleaner/Updater/JunkCleaner.Updater.exe",
+            "publish/JunkCleanerMsix/JunkCleaner.exe",
+            "publish/JunkCleanerMsix/AppxManifest.xml",
+            "publish/JunkCleanerMsix/Assets/Square44x44Logo.png",
+            "publish/JunkCleanerMsix/Assets/Square150x150Logo.png"
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path)) {
+              throw "Required release file is missing: $path"
+            }
+          }
+
+      - name: Build and sign MSIX/AppInstaller
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $makeappx = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe" |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $makeappx) { throw "makeappx.exe not found" }
+          if (-not $signtool) { throw "signtool.exe not found" }
+
+          $msix = "JunkCleaner-$tag-win-x64.msix"
+          & $makeappx pack /d publish/JunkCleanerMsix /p $msix /o
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $password = [Guid]::NewGuid().ToString("N")
+          $cert = New-SelfSignedCertificate `
+            -Type CodeSigningCert `
+            -Subject "CN=alekseichmsk" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -KeyExportPolicy Exportable `
+            -KeyLength 2048 `
+            -HashAlgorithm SHA256
+          $secure = ConvertTo-SecureString $password -AsPlainText -Force
+          Export-PfxCertificate -Cert $cert -FilePath signing-cert.pfx -Password $secure | Out-Null
+          Export-Certificate -Cert $cert -FilePath JunkCleaner-$tag-selfsigned.cer | Out-Null
+
+          & $signtool sign /fd SHA256 /f signing-cert.pfx /p $password $msix
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $base = "https://github.com/${{ github.repository }}/releases/download/$tag"
+          $appinstaller = "JunkCleaner-$tag.appinstaller"
+          $appinstallerXml = Get-Content packaging/msix/JunkCleaner.appinstaller.template -Raw
+          $appinstallerXml = $appinstallerXml.Replace("__MSIX_VERSION__", $env:MSIX_VERSION)
+          $appinstallerXml = $appinstallerXml.Replace("__APPINSTALLER_URI__", "$base/$appinstaller")
+          $appinstallerXml = $appinstallerXml.Replace("__MSIX_URI__", "$base/$msix")
+          Set-Content $appinstaller -Value $appinstallerXml -Encoding UTF8
+
+          echo "MSIX_PATH=$msix" >> $env:GITHUB_ENV
+          echo "APPINSTALLER_PATH=$appinstaller" >> $env:GITHUB_ENV
+          echo "CERT_PATH=JunkCleaner-$tag-selfsigned.cer" >> $env:GITHUB_ENV
+
       - name: Pack artifact
         shell: pwsh
         run: |
@@ -57,6 +141,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" $env:ZIP_PATH `
-            --title "JunkCleaner ${{ github.ref_name }}" `
-            --generate-notes
+          $tag = "${{ github.ref_name }}"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $env:ZIP_PATH $env:MSIX_PATH $env:APPINSTALLER_PATH $env:CERT_PATH --clobber
+          }
+          else {
+            gh release create $tag $env:ZIP_PATH $env:MSIX_PATH $env:APPINSTALLER_PATH $env:CERT_PATH `
+              --title "JunkCleaner $tag" `
+              --generate-notes
+          }
