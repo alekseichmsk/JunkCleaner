@@ -48,27 +48,27 @@ dotnet test JunkCleaner.sln -c Release
 
 ## GitHub Releases / автообновление
 
-Автообновление в приложении проверяет Releases репозитория `alekseichmsk/JunkCleaner`.
+Автообновление в приложении работает через Velopack и проверяет Releases репозитория `alekseichmsk/JunkCleaner`.
 
-Чтобы выпустить новую portable-сборку:
+Чтобы выпустить новую Velopack-сборку:
 
 ```powershell
 git tag v0.1.3
 git push origin v0.1.3
 ```
 
-GitHub Actions публикует несколько вариантов:
+GitHub Actions публикует Velopack assets:
 
-- `JunkCleaner-v0.1.3-win-x64.zip` — portable-архив для ручного переноса или portable self-update.
-- `JunkCleaner-v0.1.3-win-x64.msix` — MSIX-пакет.
-- `JunkCleaner-v0.1.3.appinstaller` — AppInstaller-файл для установки и дальнейших обновлений через Windows.
-- `JunkCleaner-v0.1.3-selfsigned.cer` — тестовый самоподписанный сертификат.
+- `JunkCleaner-win-Setup.exe` — установщик для пользователя.
+- `JunkCleaner-Portable.zip` — portable-вариант, если он нужен для ручного запуска.
+- `JunkCleaner-*-full.nupkg` и при наличии `JunkCleaner-*-delta.nupkg` — пакеты обновления.
+- `releases.win.json` и `RELEASES` — feed-файлы, по которым приложение находит новые версии.
 
-Для тестовой установки MSIX/AppInstaller нужно один раз доверить сертификат (`.cer`) в `Trusted People` / «Доверенные лица». Для публичного распространения нужен нормальный code signing certificate, иначе Windows будет предупреждать о недоверенном издателе.
+Первый переход с MSIX/AppInstaller на Velopack требует ручной переустановки: удалите MSIX-версию JunkCleaner и установите `JunkCleaner-win-Setup.exe`. После этого вкладка «Обновления» будет скачивать и применять новые версии через Velopack.
 
-Вкладка «Обновления» предпочитает `.appinstaller`/`.msix`, а portable `.zip` остаётся запасным вариантом. В сценарии AppInstaller обновления выполняет Windows, как у обычных desktop-приложений.
+Velopack ставит приложение в профиль пользователя, обычно в `%LocalAppData%\JunkCleaner`, и обновляет папку `current` без UAC. Сертификат технически не обязателен, но без code signing certificate Windows SmartScreen может показывать предупреждение о неизвестном издателе.
 
-Release notes генерируются GitHub автоматически по коммитам между тегами, поэтому во вкладке «Обновления» видно, что было добавлено и исправлено.
+Release notes для GitHub генерируются автоматически, а Velopack-пакет содержит ссылку на соответствующий GitHub Release.
 
 ## Примечания
 

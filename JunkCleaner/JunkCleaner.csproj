@@ -11,6 +11,16 @@
     <RootNamespace>JunkCleaner</RootNamespace>
     <AssemblyName>JunkCleaner</AssemblyName>
     <Version>0.1.2</Version>
+    <StartupObject>JunkCleaner.Program</StartupObject>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="0.0.1298" />
+  </ItemGroup>
 
 </Project>

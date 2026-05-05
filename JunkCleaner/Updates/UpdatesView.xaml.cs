@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using JunkCleaner.Ui;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 using UserControl = System.Windows.Controls.UserControl;
@@ -18,7 +17,7 @@ public partial class UpdatesView : UserControl
     {
         InitializeComponent();
         RepositoryText.Text = UpdateSettings.IsConfigured
-            ? $"Источник: github.com/{UpdateSettings.GitHubOwner}/{UpdateSettings.GitHubRepo}/releases"
+            ? $"Источник Velopack: github.com/{UpdateSettings.GitHubOwner}/{UpdateSettings.GitHubRepo}/releases"
             : "Источник не настроен. Укажите GitHubOwner и GitHubRepo в Updates/UpdateSettings.cs.";
         StatusText.Text = "Нажмите «Проверить обновления».";
         Unloaded += (_, _) =>
@@ -35,7 +34,7 @@ public partial class UpdatesView : UserControl
         SetBusy(true, downloading: false);
         _lastResult = null;
         AssetText.Text = string.Empty;
-        ReleaseNotesBox.Text = "Проверяем GitHub Releases…";
+        ReleaseNotesBox.Text = "Проверяем Velopack-обновления в GitHub Releases…";
         Progress.Visibility = Visibility.Collapsed;
 
         try
@@ -45,11 +44,13 @@ public partial class UpdatesView : UserControl
 
             StatusText.Text = BuildStatus(result);
             ReleaseNotesBox.Text = BuildReleaseNotes(result);
-            AssetText.Text = result.Asset is null
-                ? "Подходящий asset для установки не найден."
-                : "Asset: " + GitHubUpdateService.FormatAsset(result.Asset);
+            AssetText.Text = result.Update is null
+                ? result.IsInstalled
+                    ? "Пакет обновления не требуется."
+                    : "Автообновление доступно только после установки через Velopack."
+                : "Пакет: " + GitHubUpdateService.FormatUpdate(result.Update);
 
-            DownloadButton.IsEnabled = result.IsNewerAvailable && result.Asset is not null;
+            DownloadButton.IsEnabled = result.IsNewerAvailable && (result.Update is not null || result.IsInstalled);
             ReleasePageButton.IsEnabled = !string.IsNullOrWhiteSpace(result.ReleaseUrl);
         }
         catch (OperationCanceledException)
@@ -70,7 +71,7 @@ public partial class UpdatesView : UserControl
 
     private async void Download_Click(object sender, RoutedEventArgs e)
     {
-        if (_lastResult?.Asset is not { } asset)
+        if (_lastResult is not { } result)
             return;
 
         RestartCts();
@@ -78,42 +79,28 @@ public partial class UpdatesView : UserControl
         Progress.Value = 0;
         Progress.Visibility = Visibility.Visible;
 
-        var progress = new Progress<(long Received, long? Total)>(p =>
+        var progress = new Progress<int>(percent =>
         {
             Dispatcher.Invoke(
                 () =>
                 {
-                    if (p.Total is > 0)
-                    {
-                        Progress.IsIndeterminate = false;
-                        Progress.Value = Math.Min(100, p.Received * 100.0 / p.Total.Value);
-                        StatusText.Text =
-                            $"Скачивание: {ByteFormat.Format(p.Received)} из {ByteFormat.Format(p.Total.Value)}…";
-                    }
-                    else
-                    {
-                        Progress.IsIndeterminate = true;
-                        StatusText.Text = $"Скачивание: {ByteFormat.Format(p.Received)}…";
-                    }
+                    Progress.IsIndeterminate = false;
+                    Progress.Value = Math.Clamp(percent, 0, 100);
+                    StatusText.Text = $"Скачивание и подготовка обновления: {Progress.Value:0}%…";
                 },
                 DispatcherPriority.Background);
         });
 
         try
         {
-            var path = await _updates.DownloadAssetAsync(asset, progress, _cts!.Token).ConfigureAwait(true);
-            StatusText.Text = "Обновление скачано: " + path;
+            if (result.Update is not null)
+                await _updates.DownloadUpdateAsync(result.Update, progress, _cts!.Token).ConfigureAwait(true);
 
-            var extension = Path.GetExtension(path);
-            var isZip = extension.Equals(".zip", StringComparison.OrdinalIgnoreCase);
-            var prompt = isZip
-                ? "Файл обновления скачан. Приложение закроется, локальный updater заменит файлы старой папки и запустит новую версию.\n\nПродолжить?"
-                : extension.Equals(".appinstaller", StringComparison.OrdinalIgnoreCase)
-                    ? "Файл AppInstaller скачан. Windows откроет стандартный установщик/обновлятор приложения.\n\nПродолжить?"
-                    : "Файл обновления скачан. Запустить установщик сейчас?\n\n" + path;
+            Progress.Value = 100;
+            StatusText.Text = "Обновление скачано и готово к применению.";
 
             var answer = MessageBox.Show(
-                prompt,
+                "Обновление готово. Приложение закроется, Velopack применит новую версию и запустит JunkCleaner снова.\n\nПродолжить?",
                 "Обновление JunkCleaner",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
@@ -121,18 +108,12 @@ public partial class UpdatesView : UserControl
             if (answer != MessageBoxResult.Yes)
                 return;
 
-            if (isZip)
-            {
-                GitHubUpdateService.LaunchSelfUpdateFromZip(path);
-                Application.Current.Shutdown();
-                return;
-            }
-
-            GitHubUpdateService.LaunchDownloadedUpdate(path);
+            _updates.ApplyUpdateAndRestart(result);
+            Application.Current.Shutdown();
         }
         catch (OperationCanceledException)
         {
-            StatusText.Text = "Скачивание отменено.";
+            StatusText.Text = "Обновление отменено.";
         }
         catch (Exception ex)
         {
@@ -173,7 +154,9 @@ public partial class UpdatesView : UserControl
     private void SetBusy(bool busy, bool downloading)
     {
         CheckButton.IsEnabled = !busy;
-        DownloadButton.IsEnabled = !busy && _lastResult?.IsNewerAvailable == true && _lastResult.Asset is not null;
+        DownloadButton.IsEnabled = !busy &&
+                                   _lastResult?.IsNewerAvailable == true &&
+                                   (_lastResult.Update is not null || _lastResult.IsInstalled);
         ReleasePageButton.IsEnabled = !busy && !string.IsNullOrWhiteSpace(_lastResult?.ReleaseUrl);
         CancelButton.IsEnabled = busy;
         if (!downloading)
@@ -184,6 +167,9 @@ public partial class UpdatesView : UserControl
     {
         if (!result.IsConfigured)
             return result.Message ?? "Обновления не настроены.";
+
+        if (!result.IsInstalled)
+            return $"Текущая версия: {result.CurrentVersion}. " + (result.Message ?? string.Empty);
 
         var latest = result.LatestTag ?? "неизвестно";
         return

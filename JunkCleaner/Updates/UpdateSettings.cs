@@ -8,15 +8,7 @@ internal static class UpdateSettings
 
     public const bool IncludePrereleases = false;
 
-    /// <summary>Preferred installer/update assets. First matching asset wins.</summary>
-    public static readonly string[] PreferredAssetExtensions =
-    {
-        ".appinstaller",
-        ".msix",
-        ".zip",
-        ".msi",
-        ".exe",
-    };
+    public static string RepositoryUrl => $"https://github.com/{GitHubOwner}/{GitHubRepo}";
 
     public static bool IsConfigured =>
         !string.IsNullOrWhiteSpace(GitHubOwner) &&
