@@ -61,7 +61,7 @@ public partial class UpdatesView : UserControl
         catch (Exception ex)
         {
             StatusText.Text = "Ошибка проверки обновлений.";
-            ReleaseNotesBox.Text = ex.Message;
+            ReleaseNotesBox.Text = FormatException(ex);
         }
         finally
         {
@@ -119,7 +119,7 @@ public partial class UpdatesView : UserControl
         {
             StatusText.Text = "Ошибка скачивания обновления.";
             MessageBox.Show(
-                ex.Message,
+                FormatException(ex),
                 "Обновление JunkCleaner",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -196,6 +196,22 @@ public partial class UpdatesView : UserControl
         lines.Add(string.IsNullOrWhiteSpace(result.Body)
             ? result.Message ?? "Описание релиза отсутствует."
             : result.Body);
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static string FormatException(Exception ex)
+    {
+        var lines = new List<string>();
+        Exception? cursor = ex;
+        var depth = 0;
+
+        while (cursor is not null && depth < 12)
+        {
+            lines.Add(new string('-', depth * 2) + cursor.GetType().FullName + ": " + cursor.Message);
+            cursor = cursor.InnerException;
+            depth++;
+        }
 
         return string.Join(Environment.NewLine, lines);
     }

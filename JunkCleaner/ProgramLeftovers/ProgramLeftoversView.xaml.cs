@@ -27,10 +27,16 @@ public partial class ProgramLeftoversView : UserControl
         _itemsView.Filter = FilterItem;
         ResultsList.ItemsSource = _itemsView;
         ResultsList.MouseDoubleClick += ResultsList_MouseDoubleClick;
-        SearchBox.TextChanged += (_, _) => RefreshFilters();
+        NameFilterBox.TextChanged += (_, _) => RefreshFilters();
         KindFilterBox.SelectionChanged += (_, _) => RefreshFilters();
+        ConfidenceFilterBox.SelectionChanged += (_, _) => RefreshFilters();
+        SizeFilterBox.SelectionChanged += (_, _) => RefreshFilters();
+        ReasonFilterBox.TextChanged += (_, _) => RefreshFilters();
+        LocationFilterBox.TextChanged += (_, _) => RefreshFilters();
         ShowLowConfidenceBox.Checked += (_, _) => RefreshFilters();
         ShowLowConfidenceBox.Unchecked += (_, _) => RefreshFilters();
+        ResultsList.SizeChanged += (_, _) => ResizeColumnsToFit();
+        Loaded += (_, _) => ResizeColumnsToFit();
         Unloaded += (_, _) =>
         {
             _scanCts?.Cancel();
@@ -124,8 +130,12 @@ public partial class ProgramLeftoversView : UserControl
         CancelButton.IsEnabled = busy;
         ScanRegistryBox.IsEnabled = !busy;
         ScanFoldersBox.IsEnabled = !busy;
-        SearchBox.IsEnabled = !busy;
+        NameFilterBox.IsEnabled = !busy;
         KindFilterBox.IsEnabled = !busy;
+        ConfidenceFilterBox.IsEnabled = !busy;
+        SizeFilterBox.IsEnabled = !busy;
+        ReasonFilterBox.IsEnabled = !busy;
+        LocationFilterBox.IsEnabled = !busy;
         ShowLowConfidenceBox.IsEnabled = !busy;
         Progress.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -147,13 +157,38 @@ public partial class ProgramLeftoversView : UserControl
             item.Kind != ProgramLeftoverKind.RegistryKey)
             return false;
 
-        var query = SearchBox.Text?.Trim();
-        if (string.IsNullOrWhiteSpace(query))
-            return true;
+        var confidence = (ConfidenceFilterBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        if (!string.Equals(confidence, "Все", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(item.Confidence, confidence, StringComparison.OrdinalIgnoreCase))
+            return false;
 
-        return item.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-               item.Location.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-               item.Reason.Contains(query, StringComparison.OrdinalIgnoreCase);
+        var sizeFilter = (SizeFilterBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        if (string.Equals(sizeFilter, "Только с размером", StringComparison.OrdinalIgnoreCase) &&
+            item.SizeBytes is null)
+            return false;
+        if (string.Equals(sizeFilter, ">= 100 MB", StringComparison.OrdinalIgnoreCase) &&
+            (item.SizeBytes ?? 0) < 100L * 1024L * 1024L)
+            return false;
+        if (string.Equals(sizeFilter, ">= 1 GB", StringComparison.OrdinalIgnoreCase) &&
+            (item.SizeBytes ?? 0) < 1024L * 1024L * 1024L)
+            return false;
+
+        var nameQuery = NameFilterBox.Text?.Trim();
+        if (!string.IsNullOrWhiteSpace(nameQuery) &&
+            !item.Name.Contains(nameQuery, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var reasonQuery = ReasonFilterBox.Text?.Trim();
+        if (!string.IsNullOrWhiteSpace(reasonQuery) &&
+            !item.Reason.Contains(reasonQuery, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var locationQuery = LocationFilterBox.Text?.Trim();
+        if (!string.IsNullOrWhiteSpace(locationQuery) &&
+            !item.Location.Contains(locationQuery, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return true;
     }
 
     private void RefreshFilters()
@@ -272,5 +307,32 @@ public partial class ProgramLeftoversView : UserControl
                 Arguments = arguments,
                 UseShellExecute = true,
             });
+    }
+
+    private void ResizeColumnsToFit()
+    {
+        var availableWidth = ResultsList.ActualWidth - 36;
+        if (availableWidth <= 0)
+            return;
+
+        // Keep columns readable while fitting the whole table inside the control width.
+        var layout = new[]
+        {
+            (column: TypeColumn, share: 0.09, min: 64d),
+            (column: ConfidenceColumn, share: 0.13, min: 86d),
+            (column: SizeColumn, share: 0.11, min: 78d),
+            (column: NameColumn, share: 0.17, min: 110d),
+            (column: ReasonColumn, share: 0.22, min: 130d),
+            (column: LocationColumn, share: 0.28, min: 160d),
+        };
+
+        var widthForShares = availableWidth;
+        foreach (var (_, _, min) in layout)
+            widthForShares -= min;
+        if (widthForShares < 0)
+            widthForShares = 0;
+
+        foreach (var (column, share, min) in layout)
+            column.Width = min + widthForShares * share;
     }
 }

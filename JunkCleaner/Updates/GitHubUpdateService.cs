@@ -17,7 +17,8 @@ public sealed class GitHubUpdateService
                 new GithubSource(
                     UpdateSettings.RepositoryUrl,
                     accessToken: null,
-                    prerelease: UpdateSettings.IncludePrereleases));
+                    prerelease: UpdateSettings.IncludePrereleases,
+                    downloader: new WindowsVelopackFileDownloader()));
         }
     }
 
@@ -79,7 +80,21 @@ public sealed class GitHubUpdateService
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var update = await _manager.CheckForUpdatesAsync().ConfigureAwait(false);
+        UpdateInfo? update;
+        using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+        {
+            timeoutCts.CancelAfter(UpdateSettings.CheckTimeout);
+            try
+            {
+                update = await _manager.CheckForUpdatesAsync().WaitAsync(timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException(
+                    $"Проверка обновлений превысила лимит {UpdateSettings.CheckTimeout.TotalSeconds:0} сек. " +
+                    "Проверьте сеть/прокси/SSL и повторите попытку.");
+            }
+        }
         cancellationToken.ThrowIfCancellationRequested();
 
         if (update is not null)
@@ -120,7 +135,20 @@ public sealed class GitHubUpdateService
             throw new InvalidOperationException("Velopack UpdateManager не инициализирован.");
 
         Action<int>? progressCallback = progress is null ? null : progress.Report;
-        await _manager.DownloadUpdatesAsync(update, progressCallback, cancellationToken).ConfigureAwait(false);
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(UpdateSettings.DownloadTimeout);
+        try
+        {
+            await _manager
+                .DownloadUpdatesAsync(update, progressCallback, timeoutCts.Token)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"Скачивание обновления превысило лимит {UpdateSettings.DownloadTimeout.TotalMinutes:0} мин. " +
+                "Проверьте соединение и повторите попытку.");
+        }
     }
 
     public void ApplyUpdateAndRestart(UpdateCheckResult result)
