@@ -1,4 +1,8 @@
-<h1><img src="JunkCleaner/Ui/Frame.svg" alt="JunkCleaner" width="40" height="40" style="vertical-align: middle; margin-right: 10px;" /> JunkCleaner</h1>
+<p align="center">
+  <img src="JunkCleaner/Ui/Frame.svg" alt="JunkCleaner" width="256" height="256" />
+  <br>
+  <h1 align=center>JunkCleaner</h1>
+</p>
 
 **Порядок на диске без сюрпризов**  
 Аккуратный помощник для Windows. Ничего не удаляет без вашего решения.
