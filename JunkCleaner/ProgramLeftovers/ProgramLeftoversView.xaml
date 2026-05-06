@@ -113,7 +113,11 @@
               BorderBrush="{DynamicResource Brush.Border}"
               BorderThickness="1">
       <ListView.ItemContainerStyle>
-        <Style BasedOn="{StaticResource {x:Type ListViewItem}}" TargetType="ListViewItem">
+        <!-- Полный шаблон без BasedOn: иначе тема может сохранять ContentPresenter вместо GridViewRowPresenter. -->
+        <Style TargetType="ListViewItem">
+          <Setter Property="Padding" Value="4,2" />
+          <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+          <Setter Property="VerticalContentAlignment" Value="Center" />
           <Setter Property="Template">
             <Setter.Value>
               <ControlTemplate TargetType="ListViewItem">
@@ -127,7 +131,7 @@
                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                       SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
                       Content="{TemplateBinding Content}"
-                      Columns="{Binding RelativeSource={RelativeSource AncestorType=ListView}, Path=View.Columns}" />
+                      Columns="{Binding View.Columns, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListView}}}" />
                 </Border>
                 <ControlTemplate.Triggers>
                   <Trigger Property="IsMouseOver" Value="True">
