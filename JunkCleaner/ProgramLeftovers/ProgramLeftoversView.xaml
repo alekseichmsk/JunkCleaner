@@ -9,7 +9,7 @@
     </Grid.RowDefinitions>
 
     <StackPanel Grid.Row="0" Margin="0,0,0,12">
-      <TextBlock Text="Ищет возможные остатки удалённых программ. Ничего не удаляет автоматически: результат нужно проверить вручную."
+      <TextBlock Text="Ищет возможные остатки удалённых программ. Ничего не удаляет автоматически: результат нужно проверить вручную. Тип объекта смотрите в колонке «Тип файла»."
                  TextWrapping="Wrap"
                  Foreground="{DynamicResource Brush.TextMuted}" />
 
@@ -112,6 +112,37 @@
               Background="{DynamicResource Brush.BackgroundMid}"
               BorderBrush="{DynamicResource Brush.Border}"
               BorderThickness="1">
+      <ListView.ItemContainerStyle>
+        <Style BasedOn="{StaticResource {x:Type ListViewItem}}" TargetType="ListViewItem">
+          <Setter Property="Template">
+            <Setter.Value>
+              <ControlTemplate TargetType="ListViewItem">
+                <Border x:Name="Bd"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        SnapsToDevicePixels="True">
+                  <GridViewRowPresenter
+                      Margin="{TemplateBinding Padding}"
+                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                      Content="{TemplateBinding Content}"
+                      Columns="{Binding RelativeSource={RelativeSource AncestorType=ListView}, Path=View.Columns}" />
+                </Border>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface}" />
+                  </Trigger>
+                  <Trigger Property="IsSelected" Value="True">
+                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceRaised}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextBright}" />
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </Setter.Value>
+          </Setter>
+        </Style>
+      </ListView.ItemContainerStyle>
       <ListView.View>
         <GridView AllowsColumnReorder="False">
           <GridViewColumn x:Name="TypeColumn"
