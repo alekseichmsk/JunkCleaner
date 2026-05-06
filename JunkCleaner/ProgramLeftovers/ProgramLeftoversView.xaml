@@ -52,28 +52,22 @@
 
       <Grid Margin="0,12,0,0">
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="170" />
+          <ColumnDefinition Width="220" />
           <ColumnDefinition Width="12" />
-          <ColumnDefinition Width="130" />
+          <ColumnDefinition Width="150" />
           <ColumnDefinition Width="12" />
-          <ColumnDefinition Width="130" />
-          <ColumnDefinition Width="12" />
-          <ColumnDefinition Width="170" />
-          <ColumnDefinition Width="12" />
-          <ColumnDefinition Width="170" />
-          <ColumnDefinition Width="12" />
-          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <StackPanel Grid.Column="0">
-          <TextBlock Text="Имя"
+          <TextBlock Text="Быстрый поиск"
                      Foreground="{DynamicResource Brush.TextMuted}"
                      FontSize="11" />
-          <TextBox x:Name="NameFilterBox"
+          <TextBox x:Name="SearchBox"
                    Margin="0,4,0,0"
-                   ToolTip="Фильтр по имени" />
+                   ToolTip="Фильтр по имени, причине и расположению" />
         </StackPanel>
         <StackPanel Grid.Column="2">
-          <TextBlock Text="Тип"
+          <TextBlock Text="Тип результата"
                      Foreground="{DynamicResource Brush.TextMuted}"
                      FontSize="11" />
           <ComboBox x:Name="KindFilterBox"
@@ -84,55 +78,13 @@
             <ComboBoxItem Content="Реестр" />
           </ComboBox>
         </StackPanel>
-        <StackPanel Grid.Column="4">
-          <TextBlock Text="Уверенность"
-                     Foreground="{DynamicResource Brush.TextMuted}"
-                     FontSize="11" />
-          <ComboBox x:Name="ConfidenceFilterBox"
-                    Margin="0,4,0,0"
-                    SelectedIndex="0">
-            <ComboBoxItem Content="Все" />
-            <ComboBoxItem Content="Высокая" />
-            <ComboBoxItem Content="Средняя" />
-            <ComboBoxItem Content="Низкая" />
-          </ComboBox>
-        </StackPanel>
-        <StackPanel Grid.Column="6">
-          <TextBlock Text="Размер"
-                     Foreground="{DynamicResource Brush.TextMuted}"
-                     FontSize="11" />
-          <ComboBox x:Name="SizeFilterBox"
-                    Margin="0,4,0,0"
-                    SelectedIndex="0">
-            <ComboBoxItem Content="Все" />
-            <ComboBoxItem Content="Только с размером" />
-            <ComboBoxItem Content=">= 100 MB" />
-            <ComboBoxItem Content=">= 1 GB" />
-          </ComboBox>
-        </StackPanel>
-        <StackPanel Grid.Column="8">
-          <TextBlock Text="Причина"
-                     Foreground="{DynamicResource Brush.TextMuted}"
-                     FontSize="11" />
-          <TextBox x:Name="ReasonFilterBox"
-                   Margin="0,4,0,0"
-                   ToolTip="Фильтр по причине" />
-        </StackPanel>
-        <StackPanel Grid.Column="10">
-          <TextBlock Text="Расположение"
-                     Foreground="{DynamicResource Brush.TextMuted}"
-                     FontSize="11" />
-          <TextBox x:Name="LocationFilterBox"
-                   Margin="0,4,0,0"
-                   ToolTip="Фильтр по расположению" />
-        </StackPanel>
-      </Grid>
-
-      <CheckBox x:Name="ShowLowConfidenceBox"
-                Margin="0,10,0,0"
+        <CheckBox x:Name="ShowLowConfidenceBox"
                   Grid.Column="4"
+                  Margin="0,22,0,0"
+                  VerticalAlignment="Top"
                   Content="Показывать низкую уверенность"
                   Foreground="{DynamicResource Brush.TextBright}" />
+      </Grid>
 
       <ProgressBar x:Name="Progress"
                    Height="5"
@@ -173,6 +125,10 @@
           <GridViewColumn x:Name="SizeColumn"
                           Header="Размер"
                           DisplayMemberBinding="{Binding SizeText}"
+                          Width="90" />
+          <GridViewColumn x:Name="FileTypeColumn"
+                          Header="Тип файла"
+                          DisplayMemberBinding="{Binding FileTypeText}"
                           Width="90" />
           <GridViewColumn x:Name="NameColumn"
                           Header="Имя"

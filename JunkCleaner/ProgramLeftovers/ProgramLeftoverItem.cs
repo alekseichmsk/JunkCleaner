@@ -42,5 +42,20 @@ public sealed class ProgramLeftoverItem
         ? Ui.ByteFormat.Format(bytes)
         : "—";
 
+    public string FileTypeText
+    {
+        get
+        {
+            if (Kind == ProgramLeftoverKind.RegistryKey)
+                return "Ключ";
+
+            var ext = Path.GetExtension(Location);
+            if (!string.IsNullOrWhiteSpace(ext))
+                return ext.ToLowerInvariant();
+
+            return "Папка";
+        }
+    }
+
     public override string ToString() => Location;
 }
