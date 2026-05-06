@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <ApplicationIcon>Ui\app.ico</ApplicationIcon>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -20,7 +21,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="SharpVectors.Wpf" Version="1.8.4" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Ui\Frame.svg" />
+    <Resource Include="Ui\app.ico" />
   </ItemGroup>
 
 </Project>

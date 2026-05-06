@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1102" height="1024" viewBox="0 0 1102 1024">
+  <g>
+    <g transform="translate(66, 66)">
+      <rect width="892.44" height="892.44" rx="224" ry="224" fill="none" stroke="#4A51DB" stroke-width="24"/>
+    </g>
+    <g transform="translate(338, 177) rotate(38, 106.5, 254)">
+      <rect width="213" height="508" rx="62" ry="62" fill="none" stroke="#4A6EDB" stroke-width="24" stroke-opacity="0.4"/>
+    </g>
+    <g transform="translate(181, 243) rotate(5.78, 106.5, 254)">
+      <rect width="213" height="508" rx="62" ry="62" fill="none" stroke="#4A6EDB" stroke-width="24" stroke-opacity="0.8"/>
+    </g>
+    <g transform="translate(131, 304) rotate(-10, 106.5, 254)">
+      <rect width="213" height="508" rx="62" ry="62" fill="none" stroke="#4A6EDB" stroke-width="24"/>
+    </g>
+    <g transform="translate(254, 198) rotate(22, 106.5, 254)">
+      <rect width="213" height="508" rx="62" ry="62" fill="none" stroke="#4A6EDB" stroke-width="24" stroke-opacity="0.6"/>
+    </g>
+    <g transform="translate(497, 98)">
+      <text x="302.5" y="669" font-family="Inter" font-size="669" font-weight="800" fill="#4A6EDB" text-anchor="middle" letter-spacing="-4">j</text>
+    </g>
+  </g>
+</svg>

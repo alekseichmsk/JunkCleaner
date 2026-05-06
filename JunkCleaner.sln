@@ -5,6 +5,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JunkCleaner", "JunkCleaner\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JunkCleaner.Tests", "JunkCleaner.Tests\JunkCleaner.Tests.csproj", "{B8C9D0E1-2F3A-5B6C-0D9E-8F7A6B5C4D3E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{07C2787E-EAC7-C090-1BA3-A61EC2A24D84}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IconGen", "tools\IconGen\IconGen.csproj", "{4DDD933F-1908-4177-9801-0E43DCD8D1DC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,8 +43,23 @@ Global
 		{B8C9D0E1-2F3A-5B6C-0D9E-8F7A6B5C4D3E}.Release|x64.Build.0 = Release|Any CPU
 		{B8C9D0E1-2F3A-5B6C-0D9E-8F7A6B5C4D3E}.Release|x86.ActiveCfg = Release|Any CPU
 		{B8C9D0E1-2F3A-5B6C-0D9E-8F7A6B5C4D3E}.Release|x86.Build.0 = Release|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Debug|x64.Build.0 = Debug|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Debug|x86.Build.0 = Debug|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Release|x64.ActiveCfg = Release|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Release|x64.Build.0 = Release|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Release|x86.ActiveCfg = Release|Any CPU
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4DDD933F-1908-4177-9801-0E43DCD8D1DC} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 EndGlobal
